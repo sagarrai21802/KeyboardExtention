@@ -14,13 +14,49 @@ Features
 	•	Light/Dark mode support.
 	•	Error handling for missing permissions or transcription failures.
 
-Demo
-	1.	Enable the keyboard in Settings > Keyboards > Add New Keyboard > VoiceKeyboard.
-	2.	Switch to the keyboard in any text field.
-	3.	Press and hold the main button to start recording.
-	4.	Release to stop recording and process transcription.
-	5.	Transcribed text appears at the cursor.
-	6.	Errors display meaningful feedback with retry options.
+Step-by-Step Procedure for Using VoiceKeyboard
+1.	Install the App
+	•	Run the main app target on your iPhone.
+	•	The app installs along with the VoiceKeyboard keyboard extension.
+
+2.	Open the App
+	•	Launch the host app to access instructions and settings.
+	•	You will see options to configure Microphone Permission, Keyboard Settings, and Full Access.
+
+3.	Enable Microphone Permission
+	•	Tap the option to go to Settings → Privacy → Microphone.
+	•	Enable microphone access for VoiceKeyboard.
+
+4.	Enable Keyboard and Full Access
+	•	Go to Settings → General → Keyboard → Keyboards → Add New Keyboard.
+	•	Select VoiceKeyboard.
+	•	Enable Allow Full Access for enhanced functionality.
+
+5.	Switch to VoiceKeyboard
+	•	Open any app with a text field (Messages, Notes, etc.).
+	•	Tap the Globe icon on the default keyboard to switch to VoiceKeyboard.
+
+6.	Permissions Prompt
+	•	On the first use, an alert appears asking for microphone and speech recognition permissions.
+	•	Grant permission to proceed.
+
+7.	Use Press-and-Hold Gesture
+	•	Press and hold the main button to start recording your voice.
+	•	Release the button to stop recording.
+	•	The app processes the audio and converts it to text using Apple’s SFSpeechRecognizer.
+
+8.	Text Insertion
+	•	The transcribed text is automatically inserted at the current cursor position in the text field.
+
+9.	Feedback
+	•	Visual feedback shows recording, processing, and completion states.
+	•	Haptic feedback confirms button press, release, and completion.
+
+10.	Error Handling
+	•	If microphone permission is denied, the keyboard shows guidance to enable it.
+	•	If speech recognition fails, a retry option is displayed.
+	•	Keyboard remains responsive even in offline or error conditions.
+
 
 Project Structure
 	•	Main App Target: Optional host app for instructions, permissions, and API key configuration (if needed in future).
