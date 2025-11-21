@@ -1,3 +1,4 @@
+
 //
 //  GroqClient.swift
 //  VoiceKeyboard
@@ -7,75 +8,97 @@
 
 import Foundation
 
-// MARK: - Model for decoding API response
 struct GroqResponse: Codable {
-    let text: String   // Transcribed text from audio
+    let text: String
+}
+
+struct GroqErrorResponse: Codable {
+    let error: GroqErrorDetail
+}
+
+struct GroqErrorDetail: Codable {
+    let message: String
 }
 
 class GroqClient {
     
-    // MARK: - Transcribe audio file using Groq API
     func transcribe(audioURL: URL, completion: @escaping (Result<String, Error>) -> Void) {
         
-        // 1. Prepare request
+        // 1. Endpoint
         let url = URL(string: "https://api.groq.com/openai/v1/audio/transcriptions")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         
-        // 2. Setup headers for multipart/form-data
-        let boundary = UUID().uuidString
+        // 2. Boundaries for Multipart
+        let boundary = "Boundary-\(UUID().uuidString)"
         request.setValue("Bearer \(Secrets.groqApiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         
-        // 3. Build multipart body
+        // 3. Build Body
         var body = Data()
-        let modelName = "whisper-large-v3"  // Groq's fast transcription model
         
-        // Add model parameter
-        body.append("--\(boundary)\r\n".data(using: .utf8)!)
-        body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n".data(using: .utf8)!)
-        body.append("\(modelName)\r\n".data(using: .utf8)!)
+        // Model Parameter
+        body.append("--\(boundary)\r\n")
+        body.append("Content-Disposition: form-data; name=\"model\"\r\n\r\n")
+        body.append("whisper-large-v3\r\n")
         
-        // Add audio file
+        // Response Format Parameter
+        body.append("--\(boundary)\r\n")
+        body.append("Content-Disposition: form-data; name=\"response_format\"\r\n\r\n")
+        body.append("json\r\n")
+        
+        // File Parameter
         do {
             let audioData = try Data(contentsOf: audioURL)
-            body.append("--\(boundary)\r\n".data(using: .utf8)!)
-            body.append("Content-Disposition: form-data; name=\"file\"; filename=\"voice.m4a\"\r\n".data(using: .utf8)!)
-            body.append("Content-Type: audio/m4a\r\n\r\n".data(using: .utf8)!)
+            body.append("--\(boundary)\r\n")
+            body.append("Content-Disposition: form-data; name=\"file\"; filename=\"voice.m4a\"\r\n")
+            body.append("Content-Type: audio/m4a\r\n\r\n")
             body.append(audioData)
-            body.append("\r\n".data(using: .utf8)!)
+            body.append("\r\n")
         } catch {
-            completion(.failure(error))  // Fail if audio file can't be read
+            completion(.failure(error))
             return
         }
         
-        // Close the multipart body
-        body.append("--\(boundary)--\r\n".data(using: .utf8)!)
+        // End Boundary
+        body.append("--\(boundary)--\r\n")
         request.httpBody = body
         
-        // 4. Send the request using URLSession
+        // 4. Send Request
         URLSession.shared.dataTask(with: request) { data, response, error in
-            
-            // Handle network errors
             if let error = error {
                 completion(.failure(error))
                 return
             }
             
-            // Ensure data is received
             guard let data = data else { return }
             
             do {
-                // Debugging: Print raw JSON if needed
-                // print(String(data: data, encoding: .utf8)!)
-                
-                // Decode JSON response
-                let result = try JSONDecoder().decode(GroqResponse.self, from: data)
-                completion(.success(result.text))  // Return transcribed text
+                // Check for Success (200 OK)
+                if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 {
+                    let result = try JSONDecoder().decode(GroqResponse.self, from: data)
+                    completion(.success(result.text))
+                } else {
+                    // Try to decode error message
+                    if let errorResult = try? JSONDecoder().decode(GroqErrorResponse.self, from: data) {
+                        let apiError = NSError(domain: "GroqAPI", code: 400, userInfo: [NSLocalizedDescriptionKey: errorResult.error.message])
+                        completion(.failure(apiError))
+                    } else {
+                        completion(.failure(NSError(domain: "GroqAPI", code: 0, userInfo: [NSLocalizedDescriptionKey: "Unknown API Error"])))
+                    }
+                }
             } catch {
-                completion(.failure(error))  // Handle decoding errors
+                completion(.failure(error))
             }
-            
         }.resume()
+    }
+}
+
+// Helper to append strings to Data
+extension Data {
+    mutating func append(_ string: String) {
+        if let data = string.data(using: .utf8) {
+            append(data)
+        }
     }
 }

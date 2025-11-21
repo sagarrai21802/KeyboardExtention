@@ -1,3 +1,5 @@
+
+
 //
 //  KeyboardView.swift
 //  VoiceKeyboard
@@ -6,45 +8,41 @@
 //
 
 import SwiftUI
-import Speech
 
 struct KeyboardView: View {
     
     // Callback to insert text back into host app
     var insertText: (String) -> Void
     
-    @StateObject private var recorder = AudioRecorder() // Audio recorder instance
-    @State private var isProcessing = false              // Track transcription process
-    private let transcriber = SpeechTranscriber()       // Handles transcription
+    @StateObject private var recorder = AudioRecorder()
+    @State private var isProcessing = false
+    
+    // CHANGED: Use GroqClient instead of SpeechTranscriber
+    private let client = GroqClient()
     
     var body: some View {
         ZStack {
             
-            // MARK: - Background
+            // Background
             Color(UIColor.secondarySystemBackground)
                 .ignoresSafeArea()
             
             VStack(spacing: 20) {
                 
-                // MARK: - Status text
+                // Status text
                 Text(statusMessage)
                     .font(.caption)
                     .foregroundColor(.gray)
                 
-                // MARK: - Main mic button with pulse
+                // Main mic button
                 ZStack {
-                    
-                    // Pulse effect when recording
+                    // Pulse effect
                     if recorder.isRecording {
                         Circle()
                             .stroke(Color.red.opacity(0.5), lineWidth: 4)
                             .frame(width: 80, height: 80)
                             .scaleEffect(1.2)
-                            .animation(
-                                .easeInOut(duration: 0.8)
-                                    .repeatForever(autoreverses: true),
-                                value: recorder.isRecording
-                            )
+                            .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: recorder.isRecording)
                     }
                     
                     // Button circle
@@ -57,8 +55,7 @@ struct KeyboardView: View {
                                 .foregroundColor(.white)
                         )
                 }
-                
-                // MARK: - Gesture: Press and Hold
+                // Gesture
                 .gesture(
                     DragGesture(minimumDistance: 0)
                         .onChanged { _ in
@@ -72,16 +69,16 @@ struct KeyboardView: View {
                             }
                         }
                 )
-            } // VStack
-        } // ZStack
+            }
+        }
     }
     
-    // MARK: - Recording Logic
+    // MARK: - Logic
     
     private func startRecording() {
         let generator = UIImpactFeedbackGenerator(style: .medium)
-        generator.impactOccurred()  // Haptic feedback
-        recorder.startRecording()   // Begin recording audio
+        generator.impactOccurred()
+        recorder.startRecording()
     }
     
     private func stopAndTranscribe() {
@@ -89,15 +86,15 @@ struct KeyboardView: View {
         
         isProcessing = true
         let generator = UIImpactFeedbackGenerator(style: .heavy)
-        generator.impactOccurred()  // Haptic feedback
+        generator.impactOccurred()
         
-        // Transcribe audio
-        transcriber.transcribeFile(at: url) { result in
+        // CHANGED: Call Groq API
+        client.transcribe(audioURL: url) { result in
             DispatchQueue.main.async {
                 isProcessing = false
                 switch result {
                 case .success(let text):
-                    insertText(text + " ") // Send back with trailing space
+                    insertText(text + " ")
                 case .failure(let error):
                     insertText("[Error: \(error.localizedDescription)]")
                 }
@@ -109,7 +106,7 @@ struct KeyboardView: View {
     
     var statusMessage: String {
         if recorder.isRecording { return "Listening..." }
-        if isProcessing { return "Transcribing..." }
+        if isProcessing { return "Transcribing with Groq..." }
         return "Hold to Speak"
     }
     
